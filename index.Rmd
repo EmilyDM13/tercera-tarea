@@ -99,7 +99,7 @@ cantones_delitos <-
 ```{r color}
 # Paleta de colores para los mapas
 colores_cantones_delitos <-
-  colorNumeric(palette = "Plasma",
+  colorNumeric(palette = "Reds",
                domain = cantones_delitos$delitos,
                na.color = "transparent")
 ```
