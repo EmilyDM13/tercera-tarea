@@ -39,17 +39,12 @@ Column {data-width=150}
 -----------------------------------------------------------------------
 
 ### Mapa con leaflet de coropletas
-**Fuente de los datos: [Instituto Geográfico Nacional (IGN)](http://geos.snitcr.go.cr/be/IGN_5/wfs) y [Organismo de Investigación Judicial (OIJ)](https://sitiooij.poder-judicial.go.cr/index.php/ayuda/servicios-policiales/servicios-a-organizaciones/indice-de-transparencia-del-sector-publico-costarricense/datos-abiertos) **
+**Fuente de los datos: [Instituto Geográfico Nacional (IGN)](https://www.snitcr.go.cr/ign_ign) y [Organismo de Investigación Judicial (OIJ)](https://sitiooij.poder-judicial.go.cr/index.php/ayuda/servicios-policiales/servicios-a-organizaciones/indice-de-transparencia-del-sector-publico-costarricense/datos-abiertos) **
 
 ```{r, message=FALSE, warning=FALSE}
 cantones <-
   cantones %>%
   mutate(canton_normalizado = tolower(stri_trans_general(canton, id = "Latin-ASCII")))
-
-estadisticas <-
-  estadisticas %>%
-  mutate(Canton = if_else(Canton == "LEON CORTES", "LEON CORTES CASTRO", Canton)) %>%
-  mutate(Canton = if_else(Canton == "VASQUEZ DE CORONADO", "VAZQUEZ DE CORONADO", Canton))
 
 estadisticas <-
   estadisticas %>%
