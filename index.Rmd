@@ -4,30 +4,23 @@ output:
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
+    theme: journal
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
 ```
 
-Column {data-width=650}
------------------------------------------------------------------------
-
-### Chart A
-
 ```{r carga-paquetes, message=FALSE, warning=FALSE}
-library(tidyverse)
-library(sf)
-library(DT)
+library(flexdashboard)
+library(dplyr)
 library(ggplot2)
 library(plotly)
-library(dplyr)
+library(sf)
+library(DT)
 library(readxl)
-library(stringi)
-library(readr) 
-library(readxl) 
-library(terra) 
 library(leaflet)
+library(stringi)
 ```
 
 ```{r carga-datos-cantones, message=FALSE, warning=FALSE}
@@ -37,35 +30,35 @@ cantones <-
 ```
 
 ```{r carga-datos-delitos, message=FALSE, warning=FALSE}
-delitos <- read_xls(path="estadisticaspoliciales2021.xls")
+estadisticas <- read_xls(path="estadisticaspoliciales2021.xls")
+estadisticas=subset(estadisticas, select=c("Delito", "Fecha", "Victima", "Edad", "Genero", "Provincia", "Canton"))
 ```
 
-```{r}
+
+Column {data-width=150}
+-----------------------------------------------------------------------
+
+### Mapa con leaflet de coropletas
+**Fuente de los datos: [Instituto Geográfico Nacional (IGN)](http://geos.snitcr.go.cr/be/IGN_5/wfs) y [Organismo de Investigación Judicial (OIJ)](https://sitiooij.poder-judicial.go.cr/index.php/ayuda/servicios-policiales/servicios-a-organizaciones/indice-de-transparencia-del-sector-publico-costarricense/datos-abiertos) **
+
+```{r, message=FALSE, warning=FALSE}
 cantones <-
   cantones %>%
   mutate(canton_normalizado = tolower(stri_trans_general(canton, id = "Latin-ASCII")))
 
-delitos <-
-  delitos %>%
+estadisticas <-
+  estadisticas %>%
+  mutate(Canton = if_else(Canton == "LEON CORTES", "LEON CORTES CASTRO", Canton)) %>%
+  mutate(Canton = if_else(Canton == "VASQUEZ DE CORONADO", "VAZQUEZ DE CORONADO", Canton))
+
+estadisticas <-
+  estadisticas %>%
   mutate(canton_normalizado = tolower(stri_trans_general(Canton, id = "Latin-ASCII")))
 ```
 
-```{r}
-delitos %>%
-  left_join(
-    dplyr::select(st_drop_geometry(cantones),
-                  canton_normalizado, cod_canton),
-    by = "canton_normalizado",
-    copy = FALSE,
-    keep = FALSE
-  ) %>%
-  filter(is.na(cod_canton) & canton_normalizado != "desconocido") %>% 
-  distinct(canton_normalizado)
-```
-
-```{r}
-delitos <-
-  delitos %>%
+```{r, message=FALSE, warning=FALSE}
+estadisticas <-
+  estadisticas %>%
   left_join(
     dplyr::select(
       st_drop_geometry(cantones),
@@ -78,13 +71,11 @@ delitos <-
   )
 ```
 
-```{r}
-# Conteo de registros por código de cantón
+```{r, message=FALSE, warning=FALSE}
 delitos_x_canton <-
-  delitos %>%
-  count(cod_canton, name = "delitos")
+  estadisticas %>%
+  count(cod_canton, name = "estadisticas")
 
-# Unión de cantidad de delitos por cantón a cantones
 cantones_delitos <-
   cantones %>%
   left_join(
@@ -93,42 +84,37 @@ cantones_delitos <-
     copy = FALSE,
     keep = FALSE
   )
-
 ```
 
-```{r color}
-# Paleta de colores para los mapas
+```{r, paleta_color, message=FALSE, warning=FALSE}
 colores_cantones_delitos <-
   colorNumeric(palette = "Reds",
                domain = cantones_delitos$delitos,
                na.color = "transparent")
 ```
 
-```{r mapa}
-# Mapa leaflet de delitos en cantones
+```{r, mapa_coropletas, message=FALSE, warning=FALSE}
 leaflet() %>%
-  setView(# centro y nivel inicial de acercamiento
+  setView(
     lng = -84.19452,
     lat = 9.572735,
     zoom = 7) %>%
-  addTiles(group = "OpenStreetMap") %>% # capa base
+  addTiles(group = "OpenStreetMap") %>% 
   addPolygons(
-    # capa de polígonos
     data = cantones_delitos,
-    fillColor = ~ colores_cantones_delitos(cantones_delitos$delitos),
+    fillColor = ~ colores_cantones_delitos(cantones_delitos$estadisticas),
     fillOpacity = 0.8,
     color = "black",
     stroke = TRUE,
     weight = 1.0,
     popup = paste(
-      # ventana emergente
       paste(
         "<strong>Cantón:</strong>",
         cantones_delitos$canton
       ),
       paste(
         "<strong>Delitos:</strong>",
-        cantones_delitos$delitos
+        cantones_delitos$estadisticas
       ),
       sep = '<br/>'
     ),
@@ -143,11 +129,107 @@ leaflet() %>%
     # leyenda
     position = "bottomleft",
     pal = colores_cantones_delitos,
-    values = cantones_delitos$delitos,
+    values = cantones_delitos$estadisticas,
     group = "Delitos",
     title = "Cantidad de delitos"
   )
 ```
+
+
+Column {data-width=150}
+----------------------------------------------------------------------
+
+### Tabla con DT
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+estadisticas %>%
+  datatable(options = list(
+    pageLength = 5,
+    language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json') 
+  ), colnames=c("Delito", "Fecha", "Víctima", "Edad", "Género", "Provincia", "Cantón"))
+```
+
+
+Column {data-width=150}
+-----------------------------------------------------------------------
+
+### Cantidad de delitos por tipo de delito
+
+```{r, grafico_simple, message=FALSE, echo=FALSE, warning=FALSE}
+tabla=summarise(group_by(estadisticas,Delito),
+                n=n())
+
+ggplot2_cantidad_delitos <- 
+  ggplot(tabla,aes(y=reorder(Delito,+n),x=n)) +
+  geom_bar(stat = "identity",fill=c(1:6)) +
+  ggtitle("Cantidad de delitos por tipo de delito") +
+  ylab("Delito") +
+  xlab("Cantidad de delitos") +
+  theme_classic()
+
+ggplotly(ggplot2_cantidad_delitos) %>% config(locale = 'es')
+```
+
+
+### Cantidad de delitos por víctima
+```{r}
+tabla4=summarise(group_by(estadisticas, Victima),
+                n=n())
+ggplot2_cantidad_delvic <- 
+  ggplot(tabla4,aes(y=reorder(Victima,+n), x=n)) +
+  geom_bar(stat = "identity", fill=c(6:10)) +
+  ggtitle("Cantidad de delitos por víctima") +
+  ylab("Tipo de víctima") +
+  xlab("Cantidad de delitos") +
+  theme_classic()
+
+ggplotly(ggplot2_cantidad_delvic) %>% config(locale = 'es')
+```
+
+
+Column {data-width=140}
+-----------------------------------------------------------------------
+
+
+### Cantidad de delitos por mes del año
+
+```{r, delito_mes, message=FALSE, echo=FALSE, warning=FALSE}
+estadisticas$fecha2=as.numeric(format(estadisticas$Fecha,"%m"))
+tabla1=summarise(group_by(estadisticas, fecha2),
+                n=n())
+ggplot2_cantidad_delitos <- 
+  ggplot(tabla1,aes(x=fecha2, y=n)) +
+  geom_bar(stat = "identity", fill=4) +
+  ggtitle("Cantidad de delitos por mes") +
+  ylab("Cantidad de Delito") +
+  xlab("Mes") +
+  scale_x_continuous(breaks = c(1:11),labels = c("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Set","Oct","Nov"))+
+  theme_classic()
+
+ggplotly(ggplot2_cantidad_delitos) %>% config(locale = 'es')
+```
+
+
+
+### Proporción de Tipo de delitos por género
+
+```{r, delito_genero, message=FALSE, echo=FALSE, warning=FALSE}
+
+ggplot2_barras_apiladas_cantidad <-
+  estadisticas %>%
+  ggplot(aes(x = estadisticas$Delito, fill = estadisticas$Genero)) +
+  geom_bar(position = "fill") +
+  ggtitle("Proporción de Tipo de delitos por género") +
+  xlab("Tipo de Delito") +
+  ylab("Proporción") +
+  labs(fill = "Género") +
+  theme_classic()+
+  coord_flip()
+
+ggplotly(ggplot2_barras_apiladas_cantidad) %>% config(locale = 'es')
+```
+
 
 
 
