@@ -4,7 +4,7 @@ output:
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
-    theme: journal
+    theme: flatly
 ---
 
 ```{r setup, include=FALSE}
@@ -34,11 +34,13 @@ estadisticas <- read_xls(path="estadisticaspoliciales2021.xls")
 estadisticas=subset(estadisticas, select=c("Delito", "Fecha", "Victima", "Edad", "Genero", "Provincia", "Canton"))
 ```
 
+# Mapa y tabla
 
-Column {data-width=150}
+Column {data.width=600}
 -----------------------------------------------------------------------
 
 ### Mapa con leaflet de coropletas
+
 **Fuente de los datos: [Instituto Geográfico Nacional (IGN)](https://www.snitcr.go.cr/ign_ign) y [Organismo de Investigación Judicial (OIJ)](https://sitiooij.poder-judicial.go.cr/index.php/ayuda/servicios-policiales/servicios-a-organizaciones/indice-de-transparencia-del-sector-publico-costarricense/datos-abiertos) **
 
 ```{r, message=FALSE, warning=FALSE}
@@ -130,24 +132,24 @@ leaflet() %>%
   )
 ```
 
-
-Column {data-width=150}
-----------------------------------------------------------------------
+Column {data.width=400}
+-----------------------------------------------------------------------
 
 ### Tabla con DT
-
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 estadisticas %>%
   datatable(options = list(
-    pageLength = 5,
+    pageLength = 10,
     language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json') 
   ), colnames=c("Delito", "Fecha", "Víctima", "Edad", "Género", "Provincia", "Cantón"))
 ```
 
+# Gráficos
 
-Column {data-width=150}
+Column {data.width=500}
 -----------------------------------------------------------------------
+
 
 ### Cantidad de delitos por tipo de delito
 
@@ -158,7 +160,6 @@ tabla=summarise(group_by(estadisticas,Delito),
 ggplot2_cantidad_delitos <- 
   ggplot(tabla,aes(y=reorder(Delito,+n),x=n)) +
   geom_bar(stat = "identity",fill=c(1:6)) +
-  ggtitle("Cantidad de delitos por tipo de delito") +
   ylab("Delito") +
   xlab("Cantidad de delitos") +
   theme_classic()
@@ -174,7 +175,6 @@ tabla4=summarise(group_by(estadisticas, Victima),
 ggplot2_cantidad_delvic <- 
   ggplot(tabla4,aes(y=reorder(Victima,+n), x=n)) +
   geom_bar(stat = "identity", fill=c(6:10)) +
-  ggtitle("Cantidad de delitos por víctima") +
   ylab("Tipo de víctima") +
   xlab("Cantidad de delitos") +
   theme_classic()
@@ -183,9 +183,8 @@ ggplotly(ggplot2_cantidad_delvic) %>% config(locale = 'es')
 ```
 
 
-Column {data-width=140}
+Column {data.width=500}
 -----------------------------------------------------------------------
-
 
 ### Cantidad de delitos por mes del año
 
@@ -196,7 +195,6 @@ tabla1=summarise(group_by(estadisticas, fecha2),
 ggplot2_cantidad_delitos <- 
   ggplot(tabla1,aes(x=fecha2, y=n)) +
   geom_bar(stat = "identity", fill=4) +
-  ggtitle("Cantidad de delitos por mes") +
   ylab("Cantidad de Delito") +
   xlab("Mes") +
   scale_x_continuous(breaks = c(1:11),labels = c("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Set","Oct","Nov"))+
@@ -204,7 +202,6 @@ ggplot2_cantidad_delitos <-
 
 ggplotly(ggplot2_cantidad_delitos) %>% config(locale = 'es')
 ```
-
 
 
 ### Proporción de Tipo de delitos por género
@@ -215,7 +212,6 @@ ggplot2_barras_apiladas_cantidad <-
   estadisticas %>%
   ggplot(aes(x = estadisticas$Delito, fill = estadisticas$Genero)) +
   geom_bar(position = "fill") +
-  ggtitle("Proporción de Tipo de delitos por género") +
   xlab("Tipo de Delito") +
   ylab("Proporción") +
   labs(fill = "Género") +
@@ -224,7 +220,6 @@ ggplot2_barras_apiladas_cantidad <-
 
 ggplotly(ggplot2_barras_apiladas_cantidad) %>% config(locale = 'es')
 ```
-
 
 
 
