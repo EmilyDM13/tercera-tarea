@@ -34,19 +34,43 @@ estadisticas <- read_xls(path="estadisticaspoliciales2021.xls")
 estadisticas=subset(estadisticas, select=c("Delito", "Fecha", "Victima", "Edad", "Genero", "Provincia", "Canton"))
 ```
 
+# Información:
+**Curso: Procesamiento de datos geográficos**   
+Profesor: Manuel Vargas del Valle  
+Estudiantes: Emily Díaz Marchena y Ana Cristina Rodíguez Segura  
+Año: 2022  
+Fuente de los datos: [Instituto Geográfico Nacional (IGN)](https://www.snitcr.go.cr/ign_ign) y [Organismo de Investigación Judicial (OIJ)](https://sitiooij.poder-judicial.go.cr/index.php/ayuda/servicios-policiales/servicios-a-organizaciones/indice-de-transparencia-del-sector-publico-costarricense/datos-abiertos)  
+
+**Información general:**  
+
+Mapa 1: Mapa de cantones de Costa Rica que muestra según un orden de color la cantidad de delitos, donde el color más oscuro representa la mayor cantidad de delitos.  
+
+Tabla 1: Muestra el tipo de delito, fecha en que se cometió; edad y género de la víctima así como su tipo, también la provincia y el cantón donde tuvo lugar el delito.  
+
+Gráfico 1: Muestra la cantidad de delitos ocurridos según su tipo.  
+
+Gráfico 2: Muestra la cantidad de delitos según el tipo de víctima.  
+
+Gráfico 3: Muestra la cantidad de delitos por mes (hasta noviembre) ocurridos durante el año 2021.  
+
+Gráfico 4: Muestra proporcionalmente la cantidad de delitos según el género.
+
 # Mapa y tabla
 
 Column {data.width=600}
 -----------------------------------------------------------------------
 
-### Mapa con leaflet de coropletas
-
-**Fuente de los datos: [Instituto Geográfico Nacional (IGN)](https://www.snitcr.go.cr/ign_ign) y [Organismo de Investigación Judicial (OIJ)](https://sitiooij.poder-judicial.go.cr/index.php/ayuda/servicios-policiales/servicios-a-organizaciones/indice-de-transparencia-del-sector-publico-costarricense/datos-abiertos) **
+### Mapa 1
 
 ```{r, message=FALSE, warning=FALSE}
 cantones <-
   cantones %>%
   mutate(canton_normalizado = tolower(stri_trans_general(canton, id = "Latin-ASCII")))
+
+estadisticas <-
+  estadisticas %>%
+  mutate(Canton = if_else(Canton == "LEON CORTES", "LEON CORTES CASTRO", Canton)) %>%
+  mutate(Canton = if_else(Canton == "VASQUEZ DE CORONADO", "VAZQUEZ DE CORONADO", Canton))
 
 estadisticas <-
   estadisticas %>%
@@ -135,7 +159,7 @@ leaflet() %>%
 Column {data.width=400}
 -----------------------------------------------------------------------
 
-### Tabla con DT
+### Tabla 1
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 estadisticas %>%
@@ -151,7 +175,7 @@ Column {data.width=500}
 -----------------------------------------------------------------------
 
 
-### Cantidad de delitos por tipo de delito
+### Gráfico 1: Delitos por tipo de delito
 
 ```{r, grafico_simple, message=FALSE, echo=FALSE, warning=FALSE}
 tabla=summarise(group_by(estadisticas,Delito),
@@ -168,7 +192,7 @@ ggplotly(ggplot2_cantidad_delitos) %>% config(locale = 'es')
 ```
 
 
-### Cantidad de delitos por víctima
+### Gráfico 2: Delitos por víctima
 ```{r}
 tabla4=summarise(group_by(estadisticas, Victima),
                 n=n())
@@ -186,7 +210,7 @@ ggplotly(ggplot2_cantidad_delvic) %>% config(locale = 'es')
 Column {data.width=500}
 -----------------------------------------------------------------------
 
-### Cantidad de delitos por mes del año
+### Gráfico 3: Delitos por mes del año
 
 ```{r, delito_mes, message=FALSE, echo=FALSE, warning=FALSE}
 estadisticas$fecha2=as.numeric(format(estadisticas$Fecha,"%m"))
@@ -204,7 +228,7 @@ ggplotly(ggplot2_cantidad_delitos) %>% config(locale = 'es')
 ```
 
 
-### Proporción de Tipo de delitos por género
+### Gráfico 4: Delitos por género
 
 ```{r, delito_genero, message=FALSE, echo=FALSE, warning=FALSE}
 
